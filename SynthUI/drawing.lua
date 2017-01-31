@@ -2,6 +2,14 @@
 local canvases = {love.graphics.getCanvas()} -- the canvas stack
 
 return {
+  newCanvas = function(width, height)
+    return love.graphics.newCanvas(width, height, "rgba8", 10)
+  end,
+
+  drawCanvas = function(cnv, x, y)
+    love.graphics.draw(cnv, x, y)
+  end,
+
   pushCanvas = function(cnv)
     table.insert(canvases, cnv)
     love.graphics.setCanvas(cnv)

@@ -34,8 +34,7 @@ function Sliderbox:draw()
   drawing.drawLine(0, h/2, w, h/2, self.midlinesColor)
   drawing.drawRect(0, 0, w, h, self.outlineColor, "line")
   self.circle:draw()
-  drawing.popCanvas()
-  love.graphics.draw(self.canvas, x, y)
+  drawing.drawCanvas(drawing.popCanvas(), x, y)
   return self
 end
 
@@ -44,7 +43,7 @@ function Sliderbox:new()
     circle = Circle:new():set{radius=15, backgroundColor={200, 200, 210, 100}},
   }
   sbox = setmetatable(sbox, Sliderbox):initDefaults()
-  sbox.canvas = love.graphics.newCanvas(sbox.width, sbox.height, nil, 10)
+  sbox.canvas = drawing.newCanvas(sbox.width, sbox.height)
   function sbox.circle.handleMouseMove(cir, x, y, dx, dy)
     if cir.mouseCaptured then
       local new_x = x + dx

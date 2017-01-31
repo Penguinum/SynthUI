@@ -30,9 +30,7 @@ PolylineEdit.parameters = {
 }
 
 function PolylineEdit:draw()
-  local old_canvas = love.graphics.getCanvas()
-  love.graphics.setCanvas(self.canvas)
-  love.graphics.clear()
+  drawing.pushCanvas(self.canvas)
   local x, y, w, h = self.left, self.top, self.width, self.height
   drawing.drawRect(0, 0, w, h, self.backgroundColor, "fill")
   drawing.drawRect(0, 0, w, h, self.outlineColor, "line")
@@ -46,8 +44,7 @@ function PolylineEdit:draw()
     end
     drawing.drawCircle(x1, y1, 4, {10, 250, 10})
   end
-  love.graphics.setCanvas(old_canvas)
-  love.graphics.draw(self.canvas, x, y)
+  drawing.drawCanvas(drawing.popCanvas(), x, y)
   return self
 end
 
@@ -77,12 +74,12 @@ function PolylineEdit:findClosest(x, y)
 end
 
 function PolylineEdit:new()
-  local cbox = {
+  local box = {
     points = {{0, 0}, {0.5, 0.5}, {0.7, 0.8}, {1, 0}}
   }
-  setmetatable(cbox, PolylineEdit):initDefaults()
-  cbox.canvas = love.graphics.newCanvas(cbox.width, cbox.height, "rgba8", 10)
-  return cbox
+  setmetatable(box, PolylineEdit):initDefaults()
+  box.canvas = drawing.newCanvas(box.width, box.height)
+  return box
 end
 
 function PolylineEdit:handleMouseClick(x, y, button, is_double)

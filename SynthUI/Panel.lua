@@ -24,7 +24,7 @@ function Panel:new()
     child_nodes = {},
   }
   setmetatable(panel, Panel):initDefaults()
-  panel.canvas = love.graphics.newCanvas(panel.width, panel.height)
+  panel.canvas = drawing.newCanvas(panel.width, panel.height)
   return panel
 end
 
@@ -42,8 +42,7 @@ function Panel:draw()
   for _, widget in pairs(self.child_nodes) do
     widget:draw()
   end
-  drawing.popCanvas()
-  love.graphics.draw(self.canvas, self.left, self.top)
+  drawing.drawCanvas(drawing.popCanvas(), self.left, self.top)
   return self
 end
 
