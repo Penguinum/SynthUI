@@ -24,33 +24,121 @@ ADSR.parameters = {
     value = {230, 230, 230},
   },
   attack = {
-    value = 0,
-  },
-  decay = {
-    value = 0,
-  },
-  sustain = {
     value = 1,
   },
+  decay = {
+    value = 1,
+  },
+  sustain = {
+    value = 0.5,
+  },
   release = {
-    value = 0,
-  }
+    value = 1,
+  },
+  max_stage_length = {
+    value = 10,
+  },
 }
 
 function ADSR:new()
   local adsr = {}
   setmetatable(adsr, ADSR):initDefaults()
   adsr.canvas = drawing.newCanvas(self.width, self.height)
+  adsr.max_stage_width = adsr.width / 4
   return adsr
+end
+
+function ADSR:toNormalCoords(sx, sy)
+  local w, h = self.width, self.height
+  return sx / w, 1 - sy / h
+end
+
+function ADSR:toScreenCoords(nx, ny)
+  return nx * self.width, (1 - ny) * self.height
+end
+
+function ADSR:getScreenXs()
+  local max_stage_len = self.max_stage_length
+  local w = self.width
+  local attack_x = w * self.attack/max_stage_len*0.25
+  local decay_x = attack_x + w * self.decay/max_stage_len*0.25
+  local sustain_x = decay_x + w * 0.25
+  local release_x = sustain_x + w * self.release/max_stage_len*0.25
+  return attack_x, decay_x, sustain_x, release_x
+end
+
+function ADSR:getScreenYs()
+  local sust = (1-self.sustain) * self.height
+  return 0, sust, sust, self.height
 end
 
 function ADSR:draw()
   drawing.pushCanvas(self.canvas)
   local x, y, w, h = self.left, self.top, self.width, self.height
   drawing.drawRect(0, 0, w, h, self.backgroundColor, "fill")
+  local zero_x, zero_y = self:toScreenCoords(0, 0)
+  local attack_x, decay_x, sustain_x, release_x = self:getScreenXs()
+  local attack_y, decay_y, sustain_y, release_y = self:getScreenYs()
+  drawing.drawPolyline({zero_x, zero_y, attack_x, attack_y, decay_x, decay_y,
+    sustain_x, sustain_y, release_x, release_y}, {250, 0, 0})
   drawing.drawRect(0, 0, w, h, self.outlineColor, "line")
   drawing.drawCanvas(drawing.popCanvas(), x, y)
   return self
+end
+
+function ADSR:findClosest(x)
+  local xs = {self:getScreenXs()}
+  local min_dist = math.abs(xs[1] - x)
+  local cur_point = 1
+  for i = 2, 4 do
+    local cur_dist = math.abs(xs[i] - x)
+    if cur_dist < min_dist then
+      min_dist = cur_dist
+      cur_point = i
+    end
+  end
+  return cur_point
+end
+
+function ADSR:handleMouseClick(x, y, button, is_double)
+  local left, right = self.left, self.left + self.width
+  local top, bottom = self.top, self.top + self.height
+  local all_ok = x > left and x < right and y > top and y < bottom
+  if all_ok then
+    local x_shift, y_shift = x - left, y - top
+    self:onClick(x_shift, y_shift, button)
+    -- self.movepoint_num = self:findClosest(self:toNormalCoords(x_shift, y_shift))
+    -- if is_double then
+    --   print("double click")
+    -- end
+  end
+  self.mouseCaptured = true
+  return self
+end
+
+function ADSR:onClick(x, y, button)
+  local closest = self:findClosest(x)
+  self.movepoint_num = closest
+  return self
+end
+
+function ADSR:handleMouseMove(x, y, dx, dy)
+  local left, top = self.left, self.top
+  local point_num = self.movepoint_num
+  if point_num == 1 then
+    local x_shift = x - left
+    local new_attack = x_shift * self.max_stage_length * 4 / self.width
+    if new_attack > self.max_stage_length then
+      new_attack = self.max_stage_length
+    elseif new_attack < 0 then
+      new_attack = 0
+    end
+    self.attack = new_attack
+  end
+end
+
+function ADSR:handleMouseRelease()
+  self.movepoint_num = nil
 end
 
 return ADSR
