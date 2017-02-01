@@ -37,7 +37,7 @@ function Widget:handleMouseClick(x, y, button, is_double)
   local all_ok = x > left and x < right and y > top and y < bottom
   if all_ok then
     if self.onClick then
-      self.onClick(x, y, button)
+      self:onClick(x, y, button)
     end
     if self.child_nodes then
       local x_shift, y_shift = x - left, y - top
