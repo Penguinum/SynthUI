@@ -3,7 +3,7 @@ local canvases = {love.graphics.getCanvas()} -- the canvas stack
 
 return {
   newCanvas = function(width, height)
-    return love.graphics.newCanvas(width, height, "rgba8", 10)
+    return love.graphics.newCanvas(width, height, "rgba8", 1)
   end,
 
   drawCanvas = function(cnv, x, y)
@@ -33,6 +33,13 @@ return {
     local old_color = {love.graphics.getColor()}
     love.graphics.setColor(color)
     love.graphics.line(x1, y1, x2, y2)
+    love.graphics.setColor(old_color)
+  end,
+
+  drawPolyline = function(points, color)
+    local old_color = {love.graphics.getColor()}
+    love.graphics.setColor(color)
+    love.graphics.line(points)
     love.graphics.setColor(old_color)
   end,
 
