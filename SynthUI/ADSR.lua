@@ -38,6 +38,9 @@ ADSR.parameters = {
   max_stage_length = {
     value = 10,
   },
+  line_color = {
+    value = {30, 200, 50},
+  },
 }
 
 function ADSR:new()
@@ -80,7 +83,7 @@ function ADSR:draw()
   local attack_x, decay_x, sustain_x, release_x = self:getScreenXs()
   local attack_y, decay_y, sustain_y, release_y = self:getScreenYs()
   drawing.drawPolyline({zero_x, zero_y, attack_x, attack_y, decay_x, decay_y,
-    sustain_x, sustain_y, release_x, release_y}, {250, 0, 0})
+    sustain_x, sustain_y, release_x, release_y}, self.line_color)
   drawing.drawRect(0, 0, w, h, self.outlineColor, "line")
   drawing.drawCanvas(drawing.popCanvas(), x, y)
   return self
@@ -92,9 +95,13 @@ function ADSR:findClosest(x)
   local cur_point = 1
   for i = 2, 4 do
     local cur_dist = math.abs(xs[i] - x)
-    if cur_dist < min_dist then
-      min_dist = cur_dist
-      cur_point = i
+    if cur_dist <= min_dist then
+      if cur_dist == min_dist then
+        cur_point = cur_point + 0.5
+      else
+        min_dist = cur_dist
+        cur_point = i
+      end
     end
   end
   return cur_point
@@ -123,17 +130,44 @@ function ADSR:onClick(x, y, button)
 end
 
 function ADSR:handleMouseMove(x, y, dx, dy)
-  local left, top = self.left, self.top
+  local max_stage_length = self.max_stage_length
   local point_num = self.movepoint_num
-  if point_num == 1 then
-    local x_shift = x - left
-    local new_attack = x_shift * self.max_stage_length * 4 / self.width
-    if new_attack > self.max_stage_length then
-      new_attack = self.max_stage_length
-    elseif new_attack < 0 then
-      new_attack = 0
+  if point_num == 1.5 then
+    if dx < 0 and self.decay == 0 then
+      point_num = 1
     end
-    self.attack = new_attack
+  end
+  local function check_bounds(x)
+    if x > max_stage_length then
+      x = max_stage_length
+    elseif x < 0 then
+      x = 0
+    end
+    return x
+  end
+  local left, top = self.left, self.top
+  local x_shift, y_shift = x - left, y - top
+  local a, d, s, r = self:getScreenXs()
+  if point_num == 1.5 then
+    if x_shift < a then
+      point_num = 1
+    else
+      point_num = 2
+    end
+  end
+  self.movepoint_num = point_num
+  if point_num == 1 then
+    self.attack = check_bounds(x_shift * max_stage_length * 4 / self.width)
+  elseif point_num == 2 then
+    self.decay = check_bounds((x_shift - a) * max_stage_length * 4 / self.width)
+  elseif point_num == 3 then
+    local sustain = 1 - y_shift/self.height
+    if sustain < 0 then
+      sustain = 0
+    elseif sustain > 1 then
+      sustain = 1
+    end
+    self.sustain = sustain
   end
 end
 
