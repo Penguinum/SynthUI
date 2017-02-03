@@ -7,7 +7,7 @@ function button:onClick(x, y, button)
   love.event.quit(0)
 end
 
-local sliderbox = SynthUI.Sliderbox:new():set{left=110, top=10}
+local sliderbox = SynthUI.ADSR:new():set{left=110, top=10}
 local polyline_edit = SynthUI.PolylineEdit:new():set{left=110, top=250}
 
 mainPanel:addNodes{button, sliderbox, polyline_edit}
@@ -37,6 +37,13 @@ function love.mousemoved(x, y, dx, dy)
   mainPanel:handleMouseMove(x, y, dx, dy)
 end
 
+function love.keypressed(key)
+  if key == "escape" then
+    love.event.quit()
+  end
+end
+
 function love.draw()
   mainPanel:draw()
 end
+
