@@ -137,17 +137,17 @@ function ADSR:handleMouseMove(x, y, dx, dy)
       point_num = 1
     end
   end
-  local function check_bounds(x)
-    if x > max_stage_length then
-      x = max_stage_length
-    elseif x < 0 then
-      x = 0
+  local function check_bounds(value)
+    if value > max_stage_length then
+      value = max_stage_length
+    elseif value < 0 then
+      value = 0
     end
-    return x
+    return value
   end
   local left, top = self.left, self.top
   local x_shift, y_shift = x - left, y - top
-  local a, d, s, r = self:getScreenXs()
+  local a, d, s, r = self:getScreenXs() -- luacheck: ignore
   if point_num == 1.5 then
     if x_shift < a then
       point_num = 1
@@ -168,6 +168,8 @@ function ADSR:handleMouseMove(x, y, dx, dy)
       sustain = 1
     end
     self.sustain = sustain
+  elseif point_num == 4 then
+    self.release = check_bounds((x_shift - s) * max_stage_length * 4 / self.width)
   end
 end
 
