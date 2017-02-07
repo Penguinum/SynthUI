@@ -25,6 +25,7 @@ function Panel:new()
   }
   setmetatable(panel, Panel):initDefaults()
   panel.canvas = drawing.newCanvas(panel.width, panel.height)
+  
   return panel
 end
 

@@ -13,10 +13,10 @@ PolylineEdit.parameters = {
     value = 0,
   },
   width = {
-    value = 200,
+    value = 400,
   },
   height = {
-    value = 200,
+    value = 400,
   },
   backgroundColor = {
     value = {50, 50, 50},
@@ -28,31 +28,147 @@ PolylineEdit.parameters = {
     value = {230, 230, 230},
   }
 }
+------------------------------------ 
+--хранит все точки
+point_storage = {{0.0,0.0},{1.0,0.0}}
+
+--выводит список точек
+function PolylineEdit:point_list()
+    print("============")
+    for i=1,#point_storage do
+        print("index=",i)
+        print("x=",point_storage[i][1])
+        print("y=",point_storage[i][2])
+    end
+end
+
+--обновляет точки в массиве в зависимости от условий
+--1-добавляет новую точку если её нет
+--2-удаляет точку если она есть
+--3-максимальное сближение точек 0.05 по нормализованной шкале
+--4-все значения устредняются до сотых 0.00 
+function PolylineEdit:point_update(mouse_x,mouse_y)
+     --получаем координаты виджета
+     local x_min = PolylineEdit.parameters.left.value
+     local x_max = PolylineEdit.parameters.width.value + x_min
+     print(x_max)
+     local y_min = PolylineEdit.parameters.top.value
+     local y_max = PolylineEdit.parameters.height.value + y_min
+     --убираем из координат курсора координаты основного окна
+     if  mouse_y > y_min and mouse_y < y_max and
+         mouse_x > x_min and mouse_x < x_max then 
+         mouse_x =  x_max - mouse_x  
+         mouse_y =  y_max - mouse_y
+     end
+    --нормализуем значения для отрисовки
+    function toNormalCoords(sx, sy)
+    local w, h = PolylineEdit.parameters.width.value, PolylineEdit.parameters.height.value 
+    return sy / w, 1 - sx / h
+    end 
+    mouse_x,mouse_y = toNormalCoords(mouse_x,mouse_y)
+    --усредняем значения до сотых
+    function toNormalFloatingNumber(x,y,normal)
+        x , y = x*normal, y*normal
+        x , y = math.floor(x),math.floor(y)
+        x , y = x/normal, y/normal
+        return x,y 
+    end
+    mouse_x,mouse_y = toNormalFloatingNumber(mouse_x,mouse_y,100)
+    --проверяем есть ли на данных координатах точка
+    --1-если да указываем что точка для удаления
+    --2-если нет то указываем что точка для отрисовки
+    local npoint = nil -- будет ли добавлена или удалена точка?
+    local ppoint  --позиция удаляемой точки
+    for i=1,#point_storage do
+         if point_storage[i][1] < mouse_y+0.05  and point_storage[i][1] >  mouse_y-0.05  and 
+            point_storage[i][2] < mouse_x+0.05  and point_storage[i][2] >  mouse_x-0.05  then
+            npoint = false
+            ppoint = i 
+            break
+         else
+            npoint = true 
+         end 
+     end
+    --если такой точки нет то запоминаем её
+    if npoint == true then
+        print("новая позиция",mouse_x,mouse_y)--#debug
+        --сначала найдём ближайшую с лева
+        function findNeighbor()
+            local neighbor --позиция ближайшего соседа по оси x
+            for i =1,#point_storage do 
+                if point_storage[i][1] < mouse_y then
+                    neighbor = i 
+                end
+            end
+            print("зафиксировн индекс",neighbor)
+            return neighbor 
+        end 
+        local neighbor = findNeighbor()
+        --при занесении в общий массив сдвигаем новую точку
+        --правее от найденного ближайшего соседа с лева 
+        table.insert(point_storage,neighbor+1 ,{mouse_y,mouse_x})
+        print("вставлен в нидекс",neighbor+1) --#debug
+        return 
+    --если есть то удаляем
+    elseif npoint == false    then
+        print("точка уже существует",ppoint)--#debug
+        table.remove(point_storage,ppoint)
+        return
+        end 
+    end
+      
+      click_timerate = 0
+      click_interval = 0.2 
+
+--устанавливает или удаляет точку 
+--по двойному клику
+function PolylineEdit:point_handler()
+    function love.mousepressed(x,y)
+        local time = os.clock()
+        if time - click_timerate <= click_interval then
+            PolylineEdit:point_update(x,y)
+        else    
+            click_timerate = time
+            print("single")
+        end 
+    end 
+end
+
+---------------------------------
 
 function PolylineEdit:draw()
-  drawing.pushCanvas(self.canvas)
+
+  local old_canvas = love.graphics.getCanvas()
+  love.graphics.setCanvas(self.canvas)
+  love.graphics.clear()
+  PolylineEdit.parameters.left.value = self.left
+  PolylineEdit.parameters.top.value = self.top
+  PolylineEdit.parameters.width.value = self.width
+  PolylineEdit.parameters.height.value = self.height
   local x, y, w, h = self.left, self.top, self.width, self.height
   drawing.drawRect(0, 0, w, h, self.backgroundColor, "fill")
   drawing.drawRect(0, 0, w, h, self.outlineColor, "line")
-  local points = self.points
-  local points_num = #points
+  self.point_handler()--обработка нажатий перед конечной отрисовкой
+  local points = self.points 
+  local points_num = #points 
   for i = 1, points_num do
     local x1, y1 = self:toScreenCoords(points[i][1], points[i][2])
     if i < points_num then
       local x2, y2 = self:toScreenCoords(points[i+1][1], points[i+1][2])
-      drawing.drawLine(x1, y1, x2, y2, {0, 255, 0})
+      drawing.drawLine(x1, y1, x2, y2, {0, 25, 0})
     end
-    drawing.drawCircle(x1, y1, 4, {10, 250, 10})
+      drawing.drawCircle(x1, y1, 4, {10, 250, 10})
   end
-  drawing.drawCanvas(drawing.popCanvas(), x, y)
+  love.graphics.setCanvas(old_canvas)
+  love.graphics.draw(self.canvas, x, y)
   return self
 end
-
+--[[
 function PolylineEdit:toNormalCoords(sx, sy)
   local w, h = self.width, self.height
   return sx / w, 1 - sy / h
 end
-
+--]]
 function PolylineEdit:toScreenCoords(nx, ny)
   local w, h = self.width, self.height
   return nx * w, (1 - ny) * h
@@ -74,12 +190,13 @@ function PolylineEdit:findClosest(x, y)
 end
 
 function PolylineEdit:new()
-  local box = {
-    points = {{0, 0}, {0.5, 0.5}, {0.7, 0.8}, {1, 0}}
+  local cbox = {
+    points = point_storage
   }
-  setmetatable(box, PolylineEdit):initDefaults()
-  box.canvas = drawing.newCanvas(box.width, box.height)
-  return box
+  setmetatable(cbox, PolylineEdit):initDefaults()
+  --rgba8 called Error: SynthUI/PolylineEdit.lua:84: Invalid texture format: rgba8
+  cbox.canvas = love.graphics.newCanvas(cbox.width, cbox.height, "srgb", 10)
+  return cbox
 end
 
 function PolylineEdit:handleMouseClick(x, y, button, is_double)
