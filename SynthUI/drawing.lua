@@ -3,7 +3,7 @@ local canvases = {love.graphics.getCanvas()} -- the canvas stack
 
 return {
   newCanvas = function(width, height)
-    return love.graphics.newCanvas(width, height, "rgba8", 1)
+    return love.graphics.newCanvas(width, height, "srgb", 1)
   end,
 
   drawCanvas = function(cnv, x, y)
