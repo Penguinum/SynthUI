@@ -54,6 +54,7 @@ function PolylineEdit:point_update(mouse_x,mouse_y)
      print(x_max)
      local y_min = PolylineEdit.parameters.top.value
      local y_max = PolylineEdit.parameters.height.value + y_min
+     local y_old,x_old
      --убираем из координат курсора координаты основного окна
      if  mouse_y > y_min and mouse_y < y_max and
          mouse_x > x_min and mouse_x < x_max then 
@@ -64,7 +65,8 @@ function PolylineEdit:point_update(mouse_x,mouse_y)
     function toNormalCoords(sx, sy)
     local w, h = PolylineEdit.parameters.width.value, PolylineEdit.parameters.height.value 
     return sy / w, 1 - sx / h
-    end 
+    end
+    x_old,y_old = mouse_x,mouse_y--сохраняем изначальные координаты для проверки 
     mouse_x,mouse_y = toNormalCoords(mouse_x,mouse_y)
     --усредняем значения до сотых
     function toNormalFloatingNumber(x,y,normal)
@@ -106,13 +108,18 @@ function PolylineEdit:point_update(mouse_x,mouse_y)
         local neighbor = findNeighbor()
         --при занесении в общий массив сдвигаем новую точку
         --правее от найденного ближайшего соседа с лева 
-        table.insert(point_storage,neighbor+1 ,{mouse_y,mouse_x})
-        print("вставлен в нидекс",neighbor+1) --#debug
+        if x_old < x_max and y_old < y_max then -- игнорируем обработку за границей виджета
+            table.insert(point_storage,neighbor+1 ,{mouse_y,mouse_x})
+            print("вставлен в нидекс",neighbor+1) --#debug
+        end
         return 
     --если есть то удаляем
     elseif npoint == false    then
         print("точка уже существует",ppoint)--#debug
-        table.remove(point_storage,ppoint)
+        --если точек две значит это неудаляемые точки
+        if #point_storage ~= 2 then 
+            table.remove(point_storage,ppoint)
+        end
         return
         end 
     end
@@ -130,6 +137,10 @@ function PolylineEdit:point_handler()
         else    
             click_timerate = time
             print("single")
+
+            down = love.mouse.isDown('l')
+            print(down)
+
         end 
     end 
 end
