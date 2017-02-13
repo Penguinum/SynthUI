@@ -28,7 +28,7 @@ PolylineEdit.parameters = {
     value = {230, 230, 230},
   }
 }
------------------------------------- 
+---------------------------------------
 --хранит все точки
 point_storage = {{0.0,0.0},{1.0,0.0}}
 
@@ -54,6 +54,7 @@ function PolylineEdit:point_update(mouse_x,mouse_y)
      print(x_max)
      local y_min = PolylineEdit.parameters.top.value
      local y_max = PolylineEdit.parameters.height.value + y_min
+     local y_old,x_old
      --убираем из координат курсора координаты основного окна
      if  mouse_y > y_min and mouse_y < y_max and
          mouse_x > x_min and mouse_x < x_max then 
@@ -64,7 +65,8 @@ function PolylineEdit:point_update(mouse_x,mouse_y)
     function toNormalCoords(sx, sy)
     local w, h = PolylineEdit.parameters.width.value, PolylineEdit.parameters.height.value 
     return sy / w, 1 - sx / h
-    end 
+    end
+    x_old,y_old = mouse_x,mouse_y--сохраняем изначальные координаты для проверки 
     mouse_x,mouse_y = toNormalCoords(mouse_x,mouse_y)
     --усредняем значения до сотых
     function toNormalFloatingNumber(x,y,normal)
@@ -106,33 +108,143 @@ function PolylineEdit:point_update(mouse_x,mouse_y)
         local neighbor = findNeighbor()
         --при занесении в общий массив сдвигаем новую точку
         --правее от найденного ближайшего соседа с лева 
-        table.insert(point_storage,neighbor+1 ,{mouse_y,mouse_x})
-        print("вставлен в нидекс",neighbor+1) --#debug
+        if x_old < x_max and y_old < y_max then -- игнорируем обработку за границей виджета
+            table.insert(point_storage,neighbor+1 ,{mouse_y,mouse_x})
+            print("вставлен в нидекс",neighbor+1) --#debug
+        end
         return 
     --если есть то удаляем
     elseif npoint == false    then
         print("точка уже существует",ppoint)--#debug
-        table.remove(point_storage,ppoint)
+        --если точек две значит это неудаляемые точки
+        if #point_storage ~= 2 then 
+            table.remove(point_storage,ppoint)
+        end
         return
         end 
     end
+----------------------------------------------------------------------
+--передвигает точку между двумя соседними 
+--позиция перемещения ограничена с лева и с права соседними точками
+--в соотвецтвии требования отсуцтвия точек на одной горизонтальной оси
+--static - значения координат после одиночного клика
+--dyn    - изменённые значения позиции после клика
+ npoint_move = false   --есть ли точка под курсором
+ ppoint_move = false   --позиция в массиве точки под курсором
+
+function PolylineEdit:point_move(static_x,static_y,dyn_x,dyn_y)
+
+     --получаем координаты виджета
+     local x_min = PolylineEdit.parameters.left.value
+     local x_max = PolylineEdit.parameters.width.value + x_min
+     local y_min = PolylineEdit.parameters.top.value
+     local y_max = PolylineEdit.parameters.height.value + y_min
+
+     --убираем из координат курсора координаты основного окна
+     if  static_y > y_min and static_y < y_max and
+         static_x > x_min and static_x < x_max then 
+         static_x =  x_max - static_x  
+         static_y =  y_max - static_y
+     else--если клик вне границ то просто выходим ничего не делая
+            print("выход за границы виджета")--#debug
+            return 
+     end
+
+    --нормализуем значения для отрисовки
+    function toNormalCoords(sx, sy)
+        local w, h = PolylineEdit.parameters.width.value, PolylineEdit.parameters.height.value 
+        return sy / w, 1 - sx / h
+    end
+
+    static_x,static_y = toNormalCoords(static_x,static_y)
+    --усредняем значения до сотых
+    function toNormalFloatingNumber(x,y,normal)
+        x , y = x*normal, y*normal
+        x , y = math.floor(x),math.floor(y)
+        x , y = x/normal, y/normal
+        return x,y 
+    end
+    static_x,static_y = toNormalFloatingNumber(static_x,static_y,100)
+
+    --проверяем есть ли под указателем точка
+    for i=1,#point_storage do
+        if  point_storage[i][1] < static_y+0.05  and point_storage[i][1] >  static_y-0.05  and 
+            point_storage[i][2] < static_x+0.05  and point_storage[i][2] >  static_x-0.05  then
+                npoint_move = true
+                ppoint_move = i 
+            break
+         end 
+     end
+
+    --если точка по курсором есть то устанавливаем границы перемещения
+    --и обрабатываем динамические значения позиции курсора для установки новых значений
+    if npoint_move == true and ppoint_move ~= false then
       
+    local max_left,max_right = point_storage[ppoint_move-1][1],point_storage[ppoint_move+1][1]
+    print("минимальная позиция",max_left)--#debug
+    print("максимальная позиция",max_right)--#debug
+
+    dyn_x,dyn_y = toNormalCoords(dyn_y,dyn_x)
+    print("новая позиция=>",dyn_x,dyn_y)--#debug 
+    print("STATUS",npoint_move,ppoint_move)--#debug
+        if dyn_x > max_left and dyn_x < max_right  and dyn_y >= 0 then
+
+            dyn_y,dyn_x = toNormalFloatingNumber(dyn_y,dyn_x,100)
+            point_storage[ppoint_move][1]=dyn_x
+            point_storage[ppoint_move][2]=dyn_y
+        end 
+    end 
+end 
+
+------------------------------------
       click_timerate = 0
-      click_interval = 0.2 
+      click_interval = 0.2
+      single = false
+      double = false
+      static_x,static_y = nil
 
 --устанавливает или удаляет точку 
 --по двойному клику
 function PolylineEdit:point_handler()
+
+  
     function love.mousepressed(x,y)
         local time = os.clock()
         if time - click_timerate <= click_interval then
             PolylineEdit:point_update(x,y)
+            single = false
+            double = true
         else    
             click_timerate = time
+
+
             print("single")
+
+            single = true
+            double = false
+            --запоминаем положение курсора при клике
+            static_x,static_y = x,y
         end 
+     end
+
+     --позиция курсора любой момент времени
+     local dyn_x = love.mouse.getX()
+     local dyn_y = love.mouse.getY()
+    --узнаём осталась ли левая кнопка мыши нажатой
+    down = love.mouse.isDown('l')
+    --если кнопка опущена то и клика нет
+    if down == false then single = false end  
+    --устанавливаем задержку, убеждаясь что клик действительно одиночный
+    if os.clock() > (click_timerate + click_interval/4) then
+        if down == true  and single == true  and double == false then
+            print(down,single)--#debug 
+            print(dyn_x,dyn_y)--#debug
+            print("static",static_x,static_y)--#debug
+            PolylineEdit:point_move(static_x,static_y,dyn_x,dyn_y)
+        end
+    end
     end 
-end
+
 
 ---------------------------------
 
@@ -149,6 +261,10 @@ function PolylineEdit:draw()
   drawing.drawRect(0, 0, w, h, self.backgroundColor, "fill")
   drawing.drawRect(0, 0, w, h, self.outlineColor, "line")
   self.point_handler()--обработка нажатий перед конечной отрисовкой
+
+
+
+
   local points = self.points 
   local points_num = #points 
   for i = 1, points_num do
