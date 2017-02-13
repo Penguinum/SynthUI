@@ -231,7 +231,7 @@ function PolylineEdit:point_handler()
      local dyn_x = love.mouse.getX()
      local dyn_y = love.mouse.getY()
     --узнаём осталась ли левая кнопка мыши нажатой
-    down = love.mouse.isDown('l')
+    down = love.mouse.isDown(1)
     --если кнопка опущена то и клика нет
     if down == false then single = false end  
     --устанавливаем задержку, убеждаясь что клик действительно одиночный
