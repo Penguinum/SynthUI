@@ -1,5 +1,5 @@
 local package_table = {
-  ADSR = require "ADSR",
+  ADSREdit = require "ADSREdit",
   Panel = require "Panel",
   Button = require "Button",
   Sliderbox = require "Sliderbox",
