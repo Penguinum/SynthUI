@@ -14,9 +14,17 @@ PolylineEdit.parameters = {
   },
   width = {
     value = 400,
+    set = function(obj, value)
+      obj.width = value
+      obj.canvas = drawing.newCanvas(obj.width, obj.height)
+    end,
   },
   height = {
     value = 400,
+    set = function(obj, value)
+      obj.height = value
+      obj.canvas = drawing.newCanvas(obj.width, obj.height)
+    end,
   },
   backgroundColor = {
     value = {50, 50, 50},
