@@ -107,29 +107,25 @@ function ADSR:findClosest(x)
   return cur_point
 end
 
-function ADSR:handleMouseClick(x, y, button, is_double)
+function ADSR:handleMouseClick(x, y, button, is_double) -- luacheck: ignore
   local left, right = self.left, self.left + self.width
   local top, bottom = self.top, self.top + self.height
   local all_ok = x > left and x < right and y > top and y < bottom
   if all_ok then
     local x_shift, y_shift = x - left, y - top
     self:onClick(x_shift, y_shift, button)
-    -- self.movepoint_num = self:findClosest(self:toNormalCoords(x_shift, y_shift))
-    -- if is_double then
-    --   print("double click")
-    -- end
   end
   self.mouseCaptured = true
   return self
 end
 
-function ADSR:onClick(x, y, button)
+function ADSR:onClick(x, y, button) -- luacheck: ignore
   local closest = self:findClosest(x)
   self.movepoint_num = closest
   return self
 end
 
-function ADSR:handleMouseMove(x, y, dx, dy)
+function ADSR:handleMouseMove(x, y, dx, dy) -- luacheck: ignore
   local max_stage_length = self.max_stage_length
   local point_num = self.movepoint_num
   if point_num == 1.5 then
@@ -175,6 +171,10 @@ end
 
 function ADSR:handleMouseRelease()
   self.movepoint_num = nil
+end
+
+function ADSR:getValue()
+  return {self.attack, self.decay, self.sustain, self.release}
 end
 
 return ADSR
